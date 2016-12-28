@@ -86,8 +86,10 @@ def play(ctx, query):
     """
     from witchcraft.play import play
 
-    with _connect_db(ctx) as conn:
-        play(conn, ' '.join(query))
+    try:
+        play(_connect_db(ctx), ' '.join(query))
+    except ValueError as e:
+        ctx.fail(str(e))
 
 
 @main.command()
