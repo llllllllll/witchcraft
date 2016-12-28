@@ -64,3 +64,6 @@ MANIFEST
 .cache
 
 htmlcov
+
+# explicitly add the PKGBUILD
+arch/*

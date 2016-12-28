@@ -1,0 +1,29 @@
+# Maintainer: Joe Jevnik <joejev@gmail.org>
+
+pkgname=witchcraft
+pkgver=master
+pkgrel=1
+pkgdesc="Local music directory management utilities"
+arch=('i686' 'x86_64')
+url="https://www.github.com/llllllllll/witchcraft"
+license=('GPL')
+depends=('python' 'python-click' 'python-sqlalchemy'
+         'python-dateutil' 'python-pytaglib')
+makedepends=('python-setuptools')
+source=("https://codeload.github.com/llllllllll/${pkgname}/tar.gz/master")
+md5sums=('0153f87d921fef7ab4178b5b7e071980')
+
+prepare() {
+  cd ${pkgname}-${pkgver}
+}
+
+build() {
+    cd ${pkgname}-${pkgver}
+    python setup.py build
+}
+
+package() {
+  cd ${pkgname}-${pkgver}
+  python setup.py install --root="${pkgdir}/" --optimize=1
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
