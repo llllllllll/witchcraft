@@ -20,7 +20,7 @@ class HyphenGroup(click.Group):
 @click.group(cls=HyphenGroup)
 @click.option(
     '--music-home',
-    default=os.path.expanduser('~/music'),
+    default=os.path.expanduser('~/.witchcraft'),
     envvar='WITCHCRAFT_MUSIC_HOME',
     type=click.Path(file_okay=False, writable=True, resolve_path=True),
     help='The top level directory where music is stored',
@@ -40,6 +40,7 @@ class HyphenGroup(click.Group):
 def main(ctx, music_home, db_name, verbose):
     """Utilities for managing the storage of songs and albums.
     """
+    os.makedirs(music_home, exist_ok=True)
     ctx.obj = {
         'music_home': music_home,
         'db_name': db_name,
@@ -161,20 +162,25 @@ def ingest(ctx, path, album, artist, title, ignore_failures):
     """Ingest a file or director into the witchcraft database.
     """
     if os.path.isdir(path):
-        from witchcraft.ingest import ingest_recursive as ingest
+        from witchcraft.ingest import ingest_recursive
 
         if title is not None:
             ctx.fail('cannot pass --title when ingesting a single file')
+
+        def ingest(**kwargs):
+            del kwargs['title']
+            ingest_recursive(**kwargs)
+
     else:
         from witchcraft.ingest import ingest
 
     try:
         with _connect_db(ctx) as conn:
             ingest(
-                ctx.obj['music_home'],
-                conn,
-                path,
-                artists=artist.split(','),
+                music_home=ctx.obj['music_home'],
+                conn=conn,
+                path=path,
+                artists=artist if artist is None else artist.split(','),
                 album=album,
                 title=title,
                 verbose=ctx.obj['verbose'],
