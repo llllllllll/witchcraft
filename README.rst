@@ -20,10 +20,28 @@ Implemented
 - unpack and ingest bandcamp zipfiles
 - primitive query language support
 
+
+Witchcraft Query Language
+-------------------------
+
+I really want to add a bunch of features but right now queries are of the form:
+
+.. code-block::
+
+   <name> [on <album>] [by <artist>]
+
+- ``<name>`` is interpreted as a substring search on the result set. The special
+  form ``.`` is like ``select *``; however, ``*`` is not used because I don't
+  want to escape queries.
+- ``on <album>`` filters the result set based on the album name.
+- ``by <artist>`` filters the result set based on the artist name.
+
 TODO
 ----
 
 - better compiler / querying features
+  - sorted
+  - unions
 - provide overrides for more metadata in the ``ingest`` entry point.
 - add more unpackers for different vendors.
 
