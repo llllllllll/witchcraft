@@ -1,4 +1,12 @@
 import re
+import string
+
+# The set of characters I can tolerate having in a file on my file system.
+allowed_charset = (
+    frozenset(string.ascii_lowercase) |
+    set(string.digits) |
+    {'-'}
+)
 
 
 def normalize(name):
@@ -14,10 +22,17 @@ def normalize(name):
     normalized : str
         The normalized name.
     """
-    name = name.lower().strip()
-    name = re.sub(r"[.()&',]", '', name)  # drop special chars
-    name = re.sub(r'[\s_]', '-', name)  # normalize whitespace
-    name = re.sub(r'-+', '-', name)  # fold hyphens
+    # drop leading and trailing whitespace
+    name = name.strip()
+    # normalize case
+    name = name.lower()
+    # normalize whitespace to hyphens
+    name = re.sub(r'[\s_]', '-', name)
+    # drop invalid characters
+    for char in set(name) - allowed_charset:
+        name = name.replace(char, '')
+    # fold hyphens down into a single hyphen
+    name = re.sub(r'-+', '-', name)
     return name
 
 
