@@ -18,12 +18,12 @@ Implemented
 - metadata database
 - ingest a single file
 - unpack and ingest bandcamp zipfiles
+- primitive query language support
 
 TODO
 ----
 
-- add ``play`` entry point and query language for building playlists from the
-  metadata db.
+- better compiler / querying features
 - provide overrides for more metadata in the ``ingest`` entry point.
 - add more unpackers for different vendors.
 

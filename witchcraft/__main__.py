@@ -79,6 +79,18 @@ def version():
 
 
 @main.command()
+@click.argument('query', nargs=-1)
+@click.pass_context
+def play(ctx, query):
+    """Execute a witchcraft query and launch mpv with the results.
+    """
+    from witchcraft.play import play
+
+    with _connect_db(ctx) as conn:
+        play(conn, ' '.join(query))
+
+
+@main.command()
 @click.argument(
     'paths',
     type=click.Path(exists=True, dir_okay=False, writable=True),

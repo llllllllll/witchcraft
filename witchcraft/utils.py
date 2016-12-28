@@ -134,3 +134,19 @@ def normalize_artist(artist):
     of artist tags.
     """
     return map(normalize, artist.split(','))
+
+
+def literal_sql_compile(s):
+    """Compile a sql expression with bind params inlined as literals.
+
+    Parameters
+    ----------
+    s : Selectable
+        The expression to compile.
+
+    Returns
+    -------
+    cs : str
+        An equivalent sql string.
+    """
+    return str(s.compile(compile_kwargs={'literal_binds': True}))
