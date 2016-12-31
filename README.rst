@@ -64,13 +64,17 @@ The witchcraft query language uses queries of the form:
 
 .. code-block::
 
-   $ withcraf play <title>{, <title>}
+   $ withcraf [play|select]
+              <title>{, <title>}
               [on <album>]{, <album>} [ordered]
               [by <artist>]{, <artist>}
               [shuffle]
               [and <query>
               [or <query>]
 
+- ``$witchcraft play`` will launch ``mpv`` with the tracks that match the query.
+- ``$witchcraft select`` will print the paths to the tracks that match the
+  query.
 - ``<title>`` filters the result set based on the title of the track. The
   special title ``.`` means select all tracks. Tracks will be sorted in the
   order they are matched by the given title patterns.

@@ -93,6 +93,24 @@ def play(ctx, query):
 
 
 @main.command()
+@click.argument('query', nargs=-1)
+@click.pass_context
+def select(ctx, query):
+    """Execute a witchcraft query and print the paths to all tracks that match
+    the query.
+    """
+    from witchcraft.play import select
+
+    try:
+        paths = select(_connect_db(ctx), ' '.join(query))
+    except ValueError as e:
+        ctx.fail(str(e))
+
+    for path in paths:
+        print(path)
+
+
+@main.command()
 @click.argument(
     'paths',
     type=click.Path(exists=True, dir_okay=False, writable=True),
