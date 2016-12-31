@@ -1,5 +1,3 @@
-import operator as op
-
 from .iterator import PeekableIterator
 from .lexer import (
     And,
@@ -18,7 +16,7 @@ class BadParse(Exception):
 
     Parameters
     ----------
-    lexeme : Lexeme
+    lexeme : Lexeme or None
         The lexeme that triggered the failure.
     msg : str
         A message about why this is invalid.
@@ -50,16 +48,27 @@ def expect(stream, type_, *types):
         Raised when the next lexeme in the stream is not one of the expected
         types.
     """
-    lexeme = next(stream)
+    try:
+        lexeme = next(stream)
+    except StopIteration:
+        raise BadParse(
+            None,
+            'unexpected end of lexeme stream',
+        )
+
     types = (type_,) + types
     if not isinstance(lexeme, type_):
         raise BadParse(
             lexeme,
-            'unexpected lexeme %r, expected %s' % (
-                lexeme.string,
-                ('one of %s' % tuple(map(op.attrgetter('__name__'), types)))
+            '%s, expected %s' % (
+                lexeme.unexpected(),
+                (
+                    'one of {%r}' % ', '.join(
+                        tp.__name__.lower() for tp in types
+                    )
+                )
                 if len(types) > 1 else
-                type_.__name__,
+                type_.__name__.lower(),
             ),
         )
     return lexeme
@@ -111,8 +120,8 @@ class Query:
     """
     def __init__(self, titles, on, by, shuffle, and_, or_):
         self.titles = titles
-        self.on = on
-        self.by = by
+        self.on = on if on != '.' else None  # on all is the same as None
+        self.by = by if by != '.' else None  # by all is the same as None
         self.shuffle = shuffle
         self.and_ = and_
         self.or_ = or_
@@ -235,16 +244,21 @@ def parse(source):
     try:
         query = Query.parse(stream)
         if stream.peek():
-            # we have more tokens in the stream after the full parse
-            lexeme = next(stream)
-            raise BadParse(lexeme, 'unexpected lexeme %r' % lexeme.string)
+            # we have more tokens in the stream after the full parse, it must
+            # not be an ``And`` or ``Or`` or we wouldn't have gotten here
+            expect(stream, And, Or)
+            raise AssertionError('Query should have consumed an and or or')
     except BadParse as e:
         raise ValueError(
-            'parse error at %d: %s\n%s\n%s^' % (
-                e.lexeme.col_offset,
+            'parse error%s: %s%s%s' % (
+                (' at %d' % e.lexeme.col_offset)
+                if e.lexeme is not None else
+                '',
                 e.msg,
-                source,
-                ' ' * e.lexeme.col_offset,
+                ('\n' + source) if source else '',
+                '\n%s^' % (' ' * e.lexeme.col_offset)
+                if e.lexeme is not None else
+                '',
             ),
         )
 

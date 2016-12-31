@@ -66,8 +66,8 @@ def compile_query(query):
             artists.c.name.like(fuzzy(query.by)),
         )
 
-    # The title names get converted into filters against the title of the track.
-    # The special title '.' means match all tracks.
+    # The title names get converted into filters against the title of the
+    # track. The special title '.' means match all tracks.
     where = sa.and_(
         where,
         sa.or_(*(

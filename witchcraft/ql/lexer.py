@@ -68,6 +68,9 @@ class Keyword(Lexeme):
             {'pattern': re.compile(keyword)},
         )
 
+    def unexpected(self):
+        return 'unexpected %r' % type(self).__name__.lower()
+
 
 And = Keyword.from_keyword('and')
 Or = Keyword.from_keyword('or')
@@ -90,15 +93,21 @@ class Name(Lexeme):
     def __init__(self, string, col_offset):
         super().__init__(
             # unescape the string
-            string[1:] if string.startswith('') else string,
+            string[1:] if string.startswith(':') else string,
             col_offset,
         )
+
+    def unexpected(self):
+        return 'unexpected %r: %r' % (type(self).__name__.lower(), self.string)
 
 
 class Invalid(Lexeme):
     """An invalid token. This will trigger a parse error.
     """
     pattern = re.compile(r'\S+')
+
+    def unexpected(self):
+        return 'inavlid lexeme: %r' % self.string
 
 
 class Ignore(Lexeme):
@@ -107,6 +116,9 @@ class Ignore(Lexeme):
     :func:`.lex`.
     """
     pattern = re.compile(r'\s+')
+
+    def unexpected(self):
+        raise AssertionError('we should never get an Ignore lexeme')
 
 
 def lex(source):
