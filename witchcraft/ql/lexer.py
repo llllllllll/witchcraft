@@ -56,16 +56,19 @@ class Lexeme(metaclass=LexemeMeta):
 
 
 class Keyword(Lexeme):
-    """A lexeme that matches a fixed string.
+    """A lexeme that matches a fixed string that is otherwise a ``Name``.
     """
     pattern = None
+
+    def __init__(self, string, col_offset):
+        super().__init__(string.strip(), col_offset)
 
     @classmethod
     def from_keyword(cls, keyword):
         return type(
             capwords(keyword),
             (cls,),
-            {'pattern': re.compile(keyword)},
+            {'pattern': re.compile(keyword + r'(\s|$)')},
         )
 
     def unexpected(self):
@@ -76,8 +79,24 @@ And = Keyword.from_keyword('and')
 Or = Keyword.from_keyword('or')
 On = Keyword.from_keyword('on')
 By = Keyword.from_keyword('by')
+Ordered = Keyword.from_keyword('ordered')
 Shuffle = Keyword.from_keyword('shuffle')
-Comma = Keyword.from_keyword(',')
+
+
+class Punctuation(Lexeme):
+    """A lexeme that matches a fixed string that is not otherwise a ``Name``
+    """
+    pattern = None
+
+    @classmethod
+    def from_symbol(cls, name, symbol):
+        return type(
+            name,
+            (cls,),
+            {'pattern': re.compile(symbol)},
+        )
+
+Comma = Punctuation.from_symbol('Comma', ',')
 
 
 class Name(Lexeme):
@@ -88,7 +107,7 @@ class Name(Lexeme):
     Keywords are checked first, if you want to use a keyword as a name it can
     be escaped with a colon like ``:on``.
     """
-    pattern = re.compile(r':?[\.a-zA-Z0-0\-%]+')
+    pattern = re.compile(r':?[\.a-zA-Z0-0\-]+')
 
     def __init__(self, string, col_offset):
         super().__init__(

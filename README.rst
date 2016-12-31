@@ -64,13 +64,21 @@ The witchcraft query language uses queries of the form:
 
 .. code-block::
 
-   $ withcraf play <title>{, <title>} [on <album>] [by <artist>] [shuffle]
-                   [and <query>] [or <query>]
+   $ withcraf play <title>{, <title>}
+              [on <album>]{, <album>} [ordered]
+              [by <artist>]{, <artist>}
+              [shuffle]
+              [and <query>
+              [or <query>]
 
 - ``<title>`` filters the result set based on the title of the track. The
-  special title ``.`` means select all tracks.
-- ``on <album>`` filters the result set based on the album name.
-- ``by <artist>`` filters the result set based on the artist name.
+  special title ``.`` means select all tracks. Tracks will be sorted in the
+  order they are matched by the given title patterns.
+- ``on <album>`` filters the result set based on the album name. Tracks will be
+  sorted in the order they are matched by the album patterns.
+- ``ordered`` plays tracks in the order they appear on the the matched albums.
+- ``by <artist>`` filters the result set based on the artist name. Tracks will
+  be sorted in the order they are matched by the artist patterns.
 - ``shuffle`` marks that the tracks should be played in random order.
 - ``and <query`` intersects the results of this query with another query.
 - ``or <query`` unions the results of this query with another query.

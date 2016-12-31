@@ -6,6 +6,7 @@ from .lexer import (
     Name,
     On,
     Or,
+    Ordered,
     Shuffle,
     lex,
 )
@@ -100,6 +101,32 @@ def accept(stream, handlers):
         f(stream)
 
 
+def parse_names(stream):
+    """Parse a comma delimited list of names.
+
+    Parameters
+    ----------
+    stream : PeekableIterator[Lexeme]
+        The stream of lexeme.
+
+    Returns
+    -------
+    names : list[str] or None
+        The comma delimited list of names or None if '.' is in the list.
+    """
+    names = [expect(stream, Name).string]
+
+    def parse_more_names(iterable):
+        """Append the new names and check for more comma delimited names
+        """
+        names.append(expect(stream, Name).string)
+        accept(stream, {Comma: parse_more_names})
+
+    # parse any extra names
+    accept(stream, {Comma: parse_more_names})
+    return names
+
+
 class Query:
     """A query to run against the database.
 
@@ -107,10 +134,12 @@ class Query:
     ----------
     titles : iterable[str]
         The patterns for the titles of the tracks.
-    on : str
-        The pattern for the album to select from.
-    by : str
-        The patterns for the artist to select from
+    on : iterable[str]
+        The patterns for the albums to select from.
+    ordered : bool
+        Should the results be ordered by their appearance on this album.
+    by : iterable[str]
+        The patterns for the artists to select from
     shuffle : bool
         Should the tracks be shuffled?
     and_ : Query or None
@@ -118,10 +147,11 @@ class Query:
     or_ : Query or None
         The query to union with.
     """
-    def __init__(self, titles, on, by, shuffle, and_, or_):
+    def __init__(self, titles, on, ordered, by, shuffle, and_, or_):
         self.titles = titles
-        self.on = on if on != '.' else None  # on all is the same as None
-        self.by = by if by != '.' else None  # by all is the same as None
+        self.on = on
+        self.ordered = ordered
+        self.by = by
         self.shuffle = shuffle
         self.and_ = and_
         self.or_ = or_
@@ -134,7 +164,12 @@ class Query:
 
         .. code-bock::
 
-           Name {, Name} [on Name] [by Name] [shuffle] [and Query] [or Query]
+           Name {, Name}
+           [on Name] {, Name} [ordered]
+           [by Name] {, Name}
+           [shuffle]
+           [and Query]
+           [or Query]
 
         where ``[...]`` means optional and ``{...}`` means repeatable (can be
         empty).
@@ -156,20 +191,10 @@ class Query:
             a Query.
 
         """
-        # we require at least one Name for the titles
-        titles = [expect(stream, Name).string]
-
-        def parse_titles(iterable):
-            """Append the new title and check for more comma delimited titles.
-            """
-            titles.append(expect(stream, Name).string)
-            accept(stream, {Comma: parse_titles})
-
-        # parse any extra titles
-        accept(stream, {Comma: parse_titles})
-
+        titles = parse_names(stream)
         on = None
         by = None
+        ordered = False
         shuffle = False
         and_ = None
         or_ = None
@@ -180,7 +205,14 @@ class Query:
             """
             nonlocal on
 
-            on = expect(stream, Name).string
+            on = parse_names(stream)
+
+            def parse_ordered(stream):
+                nonlocal ordered
+                ordered = True
+
+            accept(stream, {Ordered: parse_ordered})
+
             if by is None:
                 accept(stream, {By: parse_by})
 
@@ -189,7 +221,7 @@ class Query:
             check for a ``on`` clause.
             """
             nonlocal by
-            by = expect(stream, Name).string
+            by = parse_names(stream)
             if on is None:
                 accept(stream, {On: parse_on})
 
@@ -219,7 +251,7 @@ class Query:
         # optionally check for an ``and`` or an ``or``
         accept(stream, {And: parse_and, Or: parse_or})
 
-        return cls(titles, on, by, shuffle, and_, or_)
+        return cls(titles, on, ordered, by, shuffle, and_, or_)
 
 
 def parse(source):
