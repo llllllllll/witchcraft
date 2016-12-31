@@ -6,6 +6,7 @@ import click
 
 from .ingest import ingest_file, ensure_album_dir
 
+
 @object.__new__
 class unpack:
     """The album unpacker dispatcher.
