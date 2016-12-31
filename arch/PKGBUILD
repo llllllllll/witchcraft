@@ -8,10 +8,10 @@ arch=('i686' 'x86_64')
 url="https://www.github.com/llllllllll/witchcraft"
 license=('GPL')
 depends=('python' 'python-click' 'python-sqlalchemy'
-         'python-dateutil' 'python-pytaglib')
+         'python-dateutil' 'python-pytaglib' 'mpv')
 makedepends=('python-setuptools')
 source=("https://codeload.github.com/llllllllll/${pkgname}/tar.gz/master")
-md5sums=('0153f87d921fef7ab4178b5b7e071980')
+md5sums=(SKIP)
 
 prepare() {
   cd ${pkgname}-${pkgver}
