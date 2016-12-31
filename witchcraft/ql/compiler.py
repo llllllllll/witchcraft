@@ -40,10 +40,12 @@ def compile_query(query):
         # ``on`` clauses turn into a join against the ``albums`` table
         # through the ``album_contents`` table.
         from_obj = from_obj.join(
-            albums,
-        ).join(
             album_contents,
-            album_contents.c.track_id == tracks.id,
+            album_contents.c.track_id == tracks.c.id,
+        ).join(
+            albums,
+            album_contents.c.album_id == albums.c.id,
+
         )
         where = sa.and_(
             where,
@@ -71,8 +73,9 @@ def compile_query(query):
     where = sa.and_(
         where,
         sa.or_(*(
-            True if title == '.' else tracks.c.title.like(fuzzy(title))
+            tracks.c.title.like(fuzzy(title))
             for title in query.titles
+            if title != '.'
         )),
     )
 
