@@ -107,9 +107,7 @@ ingestion
 witchcraft ql
 ~~~~~~~~~~~~~
 
-- add ``sorted`` to ``by`` clauses to sort by tracknumber on the given album
 - query for more metadata types like genre, bpm, or key.
-- allow ``on`` and ``by`` to take comma delimited lists
 
 Name
 ----
