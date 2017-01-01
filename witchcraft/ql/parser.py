@@ -1,3 +1,5 @@
+from itertools import chain
+
 from .iterator import PeekableIterator
 from .lexer import (
     And,
@@ -27,104 +29,179 @@ class BadParse(Exception):
         self.msg = msg
 
 
-def expect(stream, type_, *types):
-    """Pull the next lexeme out of the stream and assert that it is of one of
-    the expected types.
+class _QueryParser:
+    """State manager for parsing a query. Users should consume this through
+    :meth:`.Query.parse`.
 
     Parameters
     ----------
     stream : PeekableIterator[Lexeme]
-        The lexeme stream.
-    *types
-        The types to expect. This cannot be empty.
-
-    Returns
-    -------
-    lexeme : Lexeme
-        The next lexeme in the stream if it is of one of the valid types.
-
-    Raises
-    ------
-    BadParse
-        Raised when the next lexeme in the stream is not one of the expected
-        types.
+        The stream of lexemes to parse.
     """
-    try:
-        lexeme = next(stream)
-    except StopIteration:
-        raise BadParse(
-            None,
-            'unexpected end of lexeme stream',
-        )
+    def __init__(self, stream):
+        self.stream = stream
+        self.skipped_lexeme_types = set()
 
-    types = (type_,) + types
-    if not isinstance(lexeme, type_):
-        raise BadParse(
-            lexeme,
-            '%s, expected %s' % (
-                lexeme.unexpected(),
-                (
-                    'one of {%r}' % ', '.join(
-                        tp.__name__.lower() for tp in types
-                    )
-                )
-                if len(types) > 1 else
-                type_.__name__.lower(),
-            ),
-        )
-    return lexeme
+    @property
+    def have_more(self):
+        return bool(self.stream.peek())
 
+    def expect(self, type_, *types):
+        """Pull the next lexeme out of the stream and assert that it is of one
+        of the expected types.
 
-def accept(stream, handlers):
-    """Peek at the next iterable in the stream and call an optional function
-    on the stream if it matches.
+        Parameters
+        ----------
+        *types
+            The types to expect. This cannot be empty.
 
-    Parameters
-    ----------
-    stream : PeekableIterator[Lexeme]
-        The lexeme stream.
-    handler : dict[type, callable[PeekableIterator[Lexeme]]]
-        A mapping from Lexeme types to a handler function to apply to the
-        stream if the next lexeme is of the given type. If the next lexeme is
-        not handled, it will not be consumed from the stream.
-    """
-    next_ = stream.peek()
-    if not next_:
-        return
+        Returns
+        -------
+        lexeme : Lexeme
+            The next lexeme in the stream if it is of one of the valid types.
 
-    try:
-        f = handlers[type(next_[0])]
-    except KeyError:
-        pass
-    else:
-        next(stream)
-        f(stream)
-
-
-def parse_names(stream):
-    """Parse a comma delimited list of names.
-
-    Parameters
-    ----------
-    stream : PeekableIterator[Lexeme]
-        The stream of lexeme.
-
-    Returns
-    -------
-    names : list[str] or None
-        The comma delimited list of names or None if '.' is in the list.
-    """
-    names = [expect(stream, Name).string]
-
-    def parse_more_names(iterable):
-        """Append the new names and check for more comma delimited names
+        Raises
+        ------
+        BadParse
+            Raised when the next lexeme in the stream is not one of the
+            expected types.
         """
-        names.append(expect(stream, Name).string)
-        accept(stream, {Comma: parse_more_names})
+        try:
+            lexeme = next(self.stream)
+        except StopIteration:
+            raise BadParse(
+                None,
+                'unexpected end of lexeme stream',
+            )
 
-    # parse any extra names
-    accept(stream, {Comma: parse_more_names})
-    return names
+        types = (type_,) + types
+        if not isinstance(lexeme, type_):
+            skipped_lexeme_types = self.skipped_lexeme_types.copy()
+            self.skipped_lexeme_types.clear()
+            multiple_types = len(types) > 1
+            raise BadParse(
+                lexeme,
+                '%s:%sexpected %s' % (
+                    lexeme.unexpected(),
+                    '\n' if multiple_types else ' ',
+                    (
+                        'one of {%s}' % ', '.join(sorted(
+                            repr(tp.__name__.lower())
+                            for tp in set(chain(types, skipped_lexeme_types))
+                        ))
+                    )
+                    if multiple_types else
+                    type_.__name__.lower(),
+                ),
+            )
+        return lexeme
+
+    def accept(self, handlers):
+        """Peek at the next iterable in the stream and call an optional function
+        on the stream if it matches.
+
+        Parameters
+        ----------
+        handler : dict[type, callable[None]]
+            A mapping from Lexeme types to a handler function to call if the
+            next lexeme is of the given type. If the next lexeme is not
+            handled, it will not be consumed from the stream.
+        """
+        stream = self.stream
+        next_ = stream.peek()
+        if not next_:
+            return
+
+        try:
+            f = handlers[type(next_[0])]
+        except KeyError:
+            self.skipped_lexeme_types |= handlers.keys()
+        else:
+            next(stream)
+            f()
+
+    def parse_names(self):
+        """Parse a comma delimited list of names.
+
+        Returns
+        -------
+        names : list[str] or None
+            The comma delimited list of names or None if '.' is in the list.
+        """
+        names = [self.expect(Name).string]
+
+        def parse_more_names():
+            """Append the new names and check for more comma delimited names
+            """
+            names.append(self.expect(Name).string)
+            self.accept({Comma: parse_more_names})
+
+        # parse any extra names
+        self.accept({Comma: parse_more_names})
+        return names
+
+    def parse(self):
+        titles = self.parse_names()
+        on = None
+        by = None
+        ordered = False
+        shuffle = False
+        and_ = None
+        or_ = None
+
+        def parse_on():
+            """Parse an ``on`` clause. If we haven't already added a ``by``,
+            check for a ``by`` clause.
+            """
+            nonlocal on
+
+            on = self.parse_names()
+
+            def parse_ordered():
+                nonlocal ordered
+                ordered = True
+
+            self.accept({Ordered: parse_ordered})
+
+            if by is None:
+                self.accept({By: parse_by})
+
+        def parse_by():
+            """Parse a ``by`` clause. If we haven't already added an ``on``,
+            check for a ``on`` clause.
+            """
+            nonlocal by
+            by = self.parse_names()
+            if on is None:
+                self.accept({On: parse_on})
+
+        # parse the ``on`` and ``by`` in any order
+        self.accept({On: parse_on, By: parse_by})
+
+        def parse_shuffle():
+            """Parse the ``shuffle`` modifier.
+            """
+            nonlocal shuffle
+            shuffle = True
+
+        self.accept({Shuffle: parse_shuffle})
+
+        def parse_and():
+            """Parse an ``and`` clause.
+            """
+            nonlocal and_
+            and_ = _QueryParser(self.stream).parse()
+
+        def parse_or():
+            """Parse an ``or`` clause.
+            """
+            nonlocal or_
+            or_ = _QueryParser(self.stream).parse()
+
+        # optionally check for an ``and`` or an ``or``
+        self.accept({And: parse_and, Or: parse_or})
+
+        return Query(titles, on, ordered, by, shuffle, and_, or_)
 
 
 class Query:
@@ -160,20 +237,6 @@ class Query:
     def parse(cls, stream):
         """Parse a query from a stream of Lexemes.
 
-        A query is of the form:
-
-        .. code-bock::
-
-           Name {, Name}
-           [on Name] {, Name} [ordered]
-           [by Name] {, Name}
-           [shuffle]
-           [and Query]
-           [or Query]
-
-        where ``[...]`` means optional and ``{...}`` means repeatable (can be
-        empty).
-
         Parameters
         ----------
         stream : PeekableIterator[Lexeme]
@@ -190,68 +253,30 @@ class Query:
             Raised when the lexemes in the stream don't match the grammar for
             a Query.
 
+        Notes
+        -----
+        A query is of the form:
+
+        .. code-bock::
+
+           Name {, Name}
+           [on Name] {, Name} [ordered]
+           [by Name] {, Name}
+           [shuffle]
+           [and Query]
+           [or Query]
+
+        where ``[...]`` means optional and ``{...}`` means repeatable (can be
+        empty).
         """
-        titles = parse_names(stream)
-        on = None
-        by = None
-        ordered = False
-        shuffle = False
-        and_ = None
-        or_ = None
-
-        def parse_on(stream):
-            """Parse an ``on`` clause. If we haven't already added a ``by``,
-            check for a ``by`` clause.
-            """
-            nonlocal on
-
-            on = parse_names(stream)
-
-            def parse_ordered(stream):
-                nonlocal ordered
-                ordered = True
-
-            accept(stream, {Ordered: parse_ordered})
-
-            if by is None:
-                accept(stream, {By: parse_by})
-
-        def parse_by(stream):
-            """Parse a ``by`` clause. If we haven't already added an ``on``,
-            check for a ``on`` clause.
-            """
-            nonlocal by
-            by = parse_names(stream)
-            if on is None:
-                accept(stream, {On: parse_on})
-
-        # parse the ``on`` and ``by`` in any order
-        accept(stream, {On: parse_on, By: parse_by})
-
-        def parse_shuffle(stream):
-            """Parse the ``shuffle`` modifier.
-            """
-            nonlocal shuffle
-            shuffle = True
-
-        accept(stream, {Shuffle: parse_shuffle})
-
-        def parse_and(stream):
-            """Parse an ``and`` clause.
-            """
-            nonlocal and_
-            and_ = Query.parse(stream)
-
-        def parse_or(stream):
-            """Parse an ``or`` clause.
-            """
-            nonlocal or_
-            or_ = Query.parse(stream)
-
-        # optionally check for an ``and`` or an ``or``
-        accept(stream, {And: parse_and, Or: parse_or})
-
-        return cls(titles, on, ordered, by, shuffle, and_, or_)
+        parser = _QueryParser(stream)
+        query = parser.parse()
+        if parser.have_more:
+            # we have more tokens in the stream after the full parse, it must
+            # not be an ``And`` or ``Or`` or we wouldn't have gotten here
+            parser.expect(And, Or)
+            raise AssertionError('Query should have consumed an and or or')
+        return query
 
 
 def parse(source):
@@ -272,23 +297,18 @@ def parse(source):
     ValueError
         Raised when the source is not a valid query.
     """
-    stream = PeekableIterator(lex(source))
     try:
-        query = Query.parse(stream)
-        if stream.peek():
-            # we have more tokens in the stream after the full parse, it must
-            # not be an ``And`` or ``Or`` or we wouldn't have gotten here
-            expect(stream, And, Or)
-            raise AssertionError('Query should have consumed an and or or')
+        query = Query.parse(PeekableIterator(lex(source)))
     except BadParse as e:
+        indicator = '>>> '
         raise ValueError(
-            'parse error%s: %s%s%s' % (
-                (' at %d' % e.lexeme.col_offset)
+            'parse error%s: %s\n%s%s' % (
+                (' at column %d' % e.lexeme.col_offset)
                 if e.lexeme is not None else
                 '',
                 e.msg,
-                ('\n' + source) if source else '',
-                '\n%s^' % (' ' * e.lexeme.col_offset)
+                ('\n%s%s' % (indicator, source)) if source else '',
+                '\n%s^' % (' ' * (e.lexeme.col_offset + len(indicator)))
                 if e.lexeme is not None else
                 '',
             ),

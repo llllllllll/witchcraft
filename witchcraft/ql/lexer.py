@@ -96,6 +96,9 @@ class Punctuation(Lexeme):
             {'pattern': re.compile(symbol)},
         )
 
+    def unexpected(self):
+        return 'unexpected %r' % self.pattern.pattern
+
 Comma = Punctuation.from_symbol('Comma', ',')
 
 
