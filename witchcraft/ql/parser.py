@@ -76,8 +76,7 @@ class _QueryParser:
 
         types = (type_,) + types
         if not isinstance(lexeme, type_):
-            skipped_lexeme_types = self.skipped_lexeme_types.copy()
-            self.skipped_lexeme_types.clear()
+            types = tuple(set(chain(types, self.skipped_lexeme_types.copy())))
             multiple_types = len(types) > 1
             raise BadParse(
                 lexeme,
@@ -86,14 +85,15 @@ class _QueryParser:
                     '\n' if multiple_types else ' ',
                     (
                         'one of {%s}' % ', '.join(sorted(
-                            repr(tp.__name__.lower())
-                            for tp in set(chain(types, skipped_lexeme_types))
+                            repr(tp.__name__.lower()) for tp in types
                         ))
                     )
                     if multiple_types else
                     type_.__name__.lower(),
                 ),
             )
+
+        self.skipped_lexeme_types.clear()
         return lexeme
 
     def accept(self, handlers):
@@ -117,6 +117,7 @@ class _QueryParser:
         except KeyError:
             self.skipped_lexeme_types |= handlers.keys()
         else:
+            self.skipped_lexeme_types.clear()
             next(stream)
             f()
 
@@ -190,13 +191,17 @@ class _QueryParser:
             """Parse an ``and`` clause.
             """
             nonlocal and_
-            and_ = _QueryParser(self.stream).parse()
+            p = _QueryParser(self.stream)
+            and_ = p.parse()
+            self.skipped_lexeme_types = p.skipped_lexeme_types
 
         def parse_or():
             """Parse an ``or`` clause.
             """
             nonlocal or_
-            or_ = _QueryParser(self.stream).parse()
+            p = _QueryParser(self.stream)
+            or_ = p.parse()
+            self.skipped_lexeme_types = p.skipped_lexeme_types
 
         # optionally check for an ``and`` or an ``or``
         self.accept({And: parse_and, Or: parse_or})
