@@ -24,20 +24,20 @@ Witchcraft is split into two parts:
 Ingestion
 ~~~~~~~~~
 
-Witchcraft manages the storage and metadata for all of your tracks. Withcraft
+Witchcraft manages the storage and metadata for all of your tracks. Witchcraft
 provides tools for loading tracks into the database and extracting or adding
 metadata to a track.
 
-Right now there are a couple of ways to add data to the withcraft db:
+Right now there are a couple of ways to add data to the witchcraft db:
 
-- ``$ withcraft ingest``: Load a file or directory into the witchcraft db.
-  If a directory is given, it will be recursivly walked looking for audio
+- ``$ witchcraft ingest``: Load a file or directory into the witchcraft db.
+  If a directory is given, it will be recursively walked looking for audio
   files. By default, this will read the metadata out of the file to populate the
   database; however, because many vendors do not properly tag their files, you
   may explicitly pass this information on the command line.
 - ``$ witchcraft unpack-album``: Unpack and ingest an album in the form that is
   was provided by some music vendor. Right now this only supports reading the
-  zipfiles provided by `bandband <bandcamp.com>`_, but we plan to support other
+  zipfiles provided by `bandcamp <https://bandcamp.com/>`_, but we plan to support other
   vendors.
 
 
@@ -46,7 +46,7 @@ Querying for Playback
 
 Why store metadata about tracks if you don't want to use it?
 
-Withcraft comes with a query language designed for reading the withcraft db to
+Witchcraft comes with a query language designed for reading the witchcraft db to
 quickly select tracks to listen to. The goal is to describe the music you want
 to hear with some query and let witchcraft find all of the tracks that match the
 criteria. The queries can look for specific artists, albums, track names, or
@@ -64,13 +64,13 @@ The witchcraft query language uses queries of the form:
 
 .. code-block::
 
-   $ withcraf [play|select]
-              <title>{, <title>}
-              [on <album>]{, <album>} [ordered]
-              [by <artist>]{, <artist>}
-              [shuffle]
-              [and <query>
-              [or <query>]
+   $ witchcraft [play|select]
+                <title>{, <title>}
+                [on <album>]{, <album>} [ordered]
+                [by <artist>]{, <artist>}
+                [shuffle]
+                [and <query>
+                [or <query>]
 
 - ``$witchcraft play`` will launch ``mpv`` with the tracks that match the query.
 - ``$witchcraft select`` will print the paths to the tracks that match the
@@ -93,7 +93,7 @@ used as a title, album, or artist. These can be escaped with a ``:`` like:
 
 .. code-block::
 
-   $ withcraf play :on by :shuffle
+   $ witchcraft play :on by :shuffle
 
 This will play the track titled ``on`` by the artist ``shuffle``.
 
@@ -106,7 +106,7 @@ ingestion
 - add key metadata field
 - provide overrides for more metadata in the ``ingest`` entry point.
 - add more unpackers for different vendors.
-- add migration utility for the withcraft db
+- add migration utility for the witchcraft db
 
 witchcraft ql
 ~~~~~~~~~~~~~
