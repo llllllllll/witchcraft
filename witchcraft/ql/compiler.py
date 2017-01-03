@@ -136,11 +136,11 @@ def compile_query(query):
     if query.and_:
         and_, new_extras = compile_query(query.and_)
         extra_args.extend(new_extras)
-        select = select.intersect(and_)
+        select = select.alias().select().intersect(and_.alias().select())
     if query.or_:
         or_, new_extras = compile_query(query.or_)
         extra_args.extend(new_extras)
-        select = select.union(or_)
+        select = select.alias().select().union(or_.alias().select())
 
     return select, extra_args
 
