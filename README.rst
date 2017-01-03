@@ -37,8 +37,8 @@ Right now there are a couple of ways to add data to the witchcraft db:
   may explicitly pass this information on the command line.
 - ``$ witchcraft unpack-album``: Unpack and ingest an album in the form that is
   was provided by some music vendor. Right now this only supports reading the
-  zipfiles provided by `bandcamp <https://bandcamp.com/>`_, but we plan to support other
-  vendors.
+  zipfiles provided by `bandcamp <https://bandcamp.com/>`_, but we plan to
+  support other vendors.
 
 
 Querying for Playback
