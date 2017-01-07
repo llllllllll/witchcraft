@@ -114,4 +114,5 @@ def _unpack_bandcamp(music_home, conn, album, artist, paths, verbose):
                 conn=conn,
                 path=zf.extract(archivename, path=tmpdir),
                 verbose=verbose,
+                ignore_failures=False,
             )
