@@ -110,7 +110,7 @@ class Name(Lexeme):
     Keywords are checked first, if you want to use a keyword as a name it can
     be escaped with a colon like ``:on``.
     """
-    pattern = re.compile(r':?[\.a-zA-Z0-0\-]+')
+    pattern = re.compile(r':?[\.a-zA-Z0-9\-]+')
 
     def __init__(self, string, col_offset):
         super().__init__(
