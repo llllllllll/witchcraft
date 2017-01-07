@@ -8,7 +8,6 @@ from .lexer import (
     Name,
     On,
     Or,
-    Ordered,
     Shuffle,
     lex,
 )
@@ -145,7 +144,6 @@ class _QueryParser:
         titles = self.parse_names()
         on = None
         by = None
-        ordered = False
         shuffle = False
         and_ = None
         or_ = None
@@ -157,13 +155,6 @@ class _QueryParser:
             nonlocal on
 
             on = self.parse_names()
-
-            def parse_ordered():
-                nonlocal ordered
-                ordered = True
-
-            self.accept({Ordered: parse_ordered})
-
             if by is None:
                 self.accept({By: parse_by})
 
@@ -206,7 +197,7 @@ class _QueryParser:
         # optionally check for an ``and`` or an ``or``
         self.accept({And: parse_and, Or: parse_or})
 
-        return Query(titles, on, ordered, by, shuffle, and_, or_)
+        return Query(titles, on, by, shuffle, and_, or_)
 
 
 class Query:
@@ -218,8 +209,6 @@ class Query:
         The patterns for the titles of the tracks.
     on : iterable[str]
         The patterns for the albums to select from.
-    ordered : bool
-        Should the results be ordered by their appearance on this album.
     by : iterable[str]
         The patterns for the artists to select from
     shuffle : bool
@@ -229,10 +218,9 @@ class Query:
     or_ : Query or None
         The query to union with.
     """
-    def __init__(self, titles, on, ordered, by, shuffle, and_, or_):
+    def __init__(self, titles, on, by, shuffle, and_, or_):
         self.titles = titles
         self.on = on
-        self.ordered = ordered
         self.by = by
         self.shuffle = shuffle
         self.and_ = and_
@@ -265,7 +253,7 @@ class Query:
         .. code-bock::
 
            Name {, Name}
-           [on Name] {, Name} [ordered]
+           [on Name] {, Name}
            [by Name] {, Name}
            [shuffle]
            [and Query]

@@ -79,7 +79,6 @@ And = Keyword.from_keyword('and')
 Or = Keyword.from_keyword('or')
 On = Keyword.from_keyword('on')
 By = Keyword.from_keyword('by')
-Ordered = Keyword.from_keyword('ordered')
 Shuffle = Keyword.from_keyword('shuffle')
 
 

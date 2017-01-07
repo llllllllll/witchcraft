@@ -81,9 +81,7 @@ def compile_query(query):
 
         # order the tracks by the album pattern that matched them
         order_by.append(pattern_order(albums.c.title, query.on))
-
-        if query.ordered:
-            order_by.append(album_contents.c.track_number)
+        order_by.append(album_contents.c.track_number)
 
     if query.by is not None and '.' not in query.by:
         # ``by`` clauses turn into a join against the ``artists`` table

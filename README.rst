@@ -66,7 +66,7 @@ The witchcraft query language uses queries of the form:
 
    $ witchcraft [play|select]
                 <title>{, <title>}
-                [on <album>]{, <album>} [ordered]
+                [on <album>]{, <album>}
                 [by <artist>]{, <artist>}
                 [shuffle]
                 [and <query>
@@ -80,7 +80,6 @@ The witchcraft query language uses queries of the form:
   order they are matched by the given title patterns.
 - ``on <album>`` filters the result set based on the album name. Tracks will be
   sorted in the order they are matched by the album patterns.
-- ``ordered`` plays tracks in the order they appear on the the matched albums.
 - ``by <artist>`` filters the result set based on the artist name. Tracks will
   be sorted in the order they are matched by the artist patterns.
 - ``shuffle`` marks that the tracks should be played in random order.
