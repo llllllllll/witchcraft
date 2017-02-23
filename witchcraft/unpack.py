@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from tempfile import TemporaryDirectory
 
 import click
@@ -100,13 +101,14 @@ def _unpack_bandcamp(music_home, conn, album, artist, paths, verbose):
 
     with ZipFile(path) as zf, TemporaryDirectory() as tmpdir:
         for archivename in zf.namelist():
-            if archivename == 'cover.jpg':
+            if re.match(r'.*cover\.(jpg|png)$', archivename):
+                # just copy the album/ep cover information
                 path = os.path.join(
                     ensure_album_dir(music_home, album, artist),
                     archivename,
                 )
                 with open(path, 'wb') as f:
-                    f.writelines(zf.open(archivename).readlines())
+                    shutil.copyfileobj(zf.open(archivename), f)
                 continue
 
             ingest_file(
