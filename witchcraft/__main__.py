@@ -160,8 +160,8 @@ def unpack_album(ctx, paths, source, album, artist):
 @main.command()
 @click.argument(
     'path',
-    default='.',
-    type=click.Path(file_okay=False, dir_okay=True, resolve_path=True),
+    nargs=-1,
+    type=click.Path(file_okay=True, dir_okay=True, resolve_path=True),
 )
 @click.option(
     '--album',
@@ -193,33 +193,35 @@ def unpack_album(ctx, paths, source, album, artist):
 def ingest(ctx, path, album, artist, title, ignore_failures):
     """Ingest a file or director into the witchcraft database.
     """
-    if os.path.isdir(path):
-        from witchcraft.ingest import ingest_recursive
+    paths = path
+    for path in paths:
+        if os.path.isdir(path):
+            from witchcraft.ingest import ingest_recursive
 
-        if title is not None:
-            ctx.fail('cannot pass --title when ingesting a single file')
+            if title is not None:
+                ctx.fail('cannot pass --title when ingesting a single file')
 
-        def ingest(**kwargs):
-            del kwargs['title']
-            ingest_recursive(**kwargs)
+            def ingest(**kwargs):
+                del kwargs['title']
+                ingest_recursive(**kwargs)
 
-    else:
-        from witchcraft.ingest import ingest
+        else:
+            from witchcraft.ingest import ingest_file as ingest
 
-    try:
-        with _connect_db(ctx) as conn:
-            ingest(
-                music_home=ctx.obj['music_home'],
-                conn=conn,
-                path=path,
-                artists=artist if artist is None else artist.split(','),
-                album=album,
-                title=title,
-                verbose=ctx.obj['verbose'],
-                ignore_failures=ignore_failures,
-            )
-    except ValueError as e:
-        ctx.fail(str(e))
+        try:
+            with _connect_db(ctx) as conn:
+                ingest(
+                    music_home=ctx.obj['music_home'],
+                    conn=conn,
+                    path=path,
+                    artists=artist if artist is None else artist.split(','),
+                    album=album,
+                    title=title,
+                    verbose=ctx.obj['verbose'],
+                    ignore_failures=ignore_failures,
+                )
+        except ValueError as e:
+            ctx.fail(str(e))
 
 
 if __name__ == '__main__':

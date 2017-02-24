@@ -122,10 +122,15 @@ def _inner_ingest_file(music_home,
         normalize=normalize_track_number,
     )
 
+    if track_number is not None:
+        file_name = '%.2d-%s' % (track_number, title)
+    else:
+        file_name = title
+
     new_path = '%s%s' % (
         os.path.join(
             ensure_album_dir(music_home, album, artists[0]),
-            '%.2d-%s' % (track_number, title),
+            file_name,
         ),
         os.path.splitext(path)[1],
     )

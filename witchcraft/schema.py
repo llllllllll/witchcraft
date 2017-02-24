@@ -30,6 +30,7 @@ def check_version(conn):
     actual_version = conn.scalar(sa.select((version.c.version,)))
     return actual_version if actual_version != db_version else None
 
+
 tracks = sa.Table(
     'tracks',
     metadata,
