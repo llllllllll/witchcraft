@@ -98,6 +98,7 @@ class Punctuation(Lexeme):
     def unexpected(self):
         return 'unexpected %r' % self.pattern.pattern
 
+
 Comma = Punctuation.from_symbol('Comma', ',')
 
 
@@ -108,13 +109,16 @@ class Name(Lexeme):
     -----
     Keywords are checked first, if you want to use a keyword as a name it can
     be escaped with a colon like ``:on``.
+
+    A name may begin with ``^`` or end with ``$`` which will force it to match
+    that anchor like a regex.
     """
-    pattern = re.compile(r':?[\.a-zA-Z0-9\-]+')
+    pattern = re.compile(r'(:\^)?[\.a-zA-Z0-9\-]+\$?')
 
     def __init__(self, string, col_offset):
         super().__init__(
             # unescape the string
-            string[1:] if string.startswith(':') else string,
+            string[1:] if string[0] == ':' else string,
             col_offset,
         )
 

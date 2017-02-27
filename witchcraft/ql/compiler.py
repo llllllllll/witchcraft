@@ -14,7 +14,21 @@ def fuzzy(cs):
     """Make a string fuzzy in sql. This is so that querying for a subset of
     a name finds the full result.
     """
-    return '%{}%'.format(cs.replace('.', '%'))
+    pattern = ''
+
+    if cs[0] == '^':
+        cs = cs[1:]
+    else:
+        pattern += '%'
+
+    pattern += '{}'
+
+    if cs[-1] == '$':
+        cs = cs[:-1]
+    else:
+        pattern += '%'
+
+    return pattern.format(cs.replace('.', '%'))
 
 
 def pattern_order(column, patterns):
