@@ -10,14 +10,7 @@ This is free software: you are free to change and redistribute it.
 There is NO WARRANTY, to the extent permitted by law."""
 
 
-class HyphenGroup(click.Group):
-    """Group class for allowing hyphens in command names.
-    """
-    def get_command(self, ctx, cmd_name):
-        return super().get_command(ctx, cmd_name.replace('-', '_'))
-
-
-@click.group(cls=HyphenGroup)
+@click.group()
 @click.option(
     '--music-home',
     default=os.path.expanduser('~/.witchcraft'),
@@ -110,7 +103,7 @@ def select(ctx, query):
         print(path)
 
 
-@main.command()
+@main.command('unpack-album')
 @click.argument(
     'paths',
     type=click.Path(exists=True, dir_okay=False, writable=True),
