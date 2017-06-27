@@ -28,5 +28,5 @@ package() {
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 
   # install bash completion
-  install -Dm644 LICENSE "$pkgdir/usr/share/bash-completion/completions/$pkgname"
+  install -Dm644 etc/witchcraft-completion.bash "$pkgdir/usr/share/bash-completion/completions/$pkgname"
 }
