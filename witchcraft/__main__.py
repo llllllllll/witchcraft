@@ -103,6 +103,34 @@ def select(ctx, query):
         print(path)
 
 
+@main.command()
+@click.argument('query', nargs=-1)
+@click.pass_context
+def completions(ctx, query):
+    """Generate completion suggestions for a potentially unfinished query.
+    """
+    if not query:
+        completions = main.commands.keys()
+    elif query[0] in ('play', 'select'):
+        from witchcraft.ql import completions as get_completions
+        try:
+            completions = get_completions(
+                _connect_db(ctx),
+                ' '.join(query[1:]),
+            )
+        except ValueError as e:
+            ctx.fail(str(e))
+    elif len(query) == 1:
+        completions = [
+            k for k in main.commands.keys() if k.startswith(query[0])
+        ]
+    else:
+        completions = []
+
+    for completion in sorted(completions):
+        print(completion)
+
+
 @main.command('unpack-album')
 @click.argument(
     'paths',

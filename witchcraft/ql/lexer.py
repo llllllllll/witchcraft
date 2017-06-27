@@ -58,6 +58,7 @@ class Lexeme(metaclass=LexemeMeta):
 class Keyword(Lexeme):
     """A lexeme that matches a fixed string that is otherwise a ``Name``.
     """
+    keywords = set()
     pattern = None
 
     def __init__(self, string, col_offset):
@@ -65,6 +66,7 @@ class Keyword(Lexeme):
 
     @classmethod
     def from_keyword(cls, keyword):
+        cls.keywords.add(keyword)
         return type(
             capwords(keyword),
             (cls,),

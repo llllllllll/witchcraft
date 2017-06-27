@@ -1,3 +1,4 @@
+import enum
 from itertools import chain
 
 from .iterator import PeekableIterator
@@ -28,6 +29,16 @@ class BadParse(Exception):
         self.msg = msg
 
 
+@enum.unique
+class CompletionClass(enum.Enum):
+    """The types of symbols that can be completed.
+    """
+    keyword = enum.auto()
+    title = enum.auto()
+    artist = enum.auto()
+    album = enum.auto()
+
+
 class _QueryParser:
     """State manager for parsing a query. Users should consume this through
     :meth:`.Query.parse`.
@@ -40,6 +51,8 @@ class _QueryParser:
     def __init__(self, stream):
         self.stream = stream
         self.skipped_lexeme_types = set()
+        self.completion_class = CompletionClass.title
+        self.last_lexeme = None
 
     @property
     def have_more(self):
@@ -66,7 +79,7 @@ class _QueryParser:
             expected types.
         """
         try:
-            lexeme = next(self.stream)
+            lexeme = self.last_lexeme = next(self.stream)
         except StopIteration:
             raise BadParse(
                 None,
@@ -74,9 +87,11 @@ class _QueryParser:
             )
 
         types = (type_,) + types
-        if not isinstance(lexeme, type_):
-            types = tuple(set(chain(types, self.skipped_lexeme_types.copy())))
-            multiple_types = len(types) > 1
+        if not isinstance(lexeme, types):
+            skipped_types = tuple(
+                set(chain(types, self.skipped_lexeme_types.copy())),
+            )
+            multiple_types = len(skipped_types) > 1
             raise BadParse(
                 lexeme,
                 '%s:%sexpected %s' % (
@@ -84,7 +99,7 @@ class _QueryParser:
                     '\n' if multiple_types else ' ',
                     (
                         'one of {%s}' % ', '.join(sorted(
-                            repr(tp.__name__.lower()) for tp in types
+                            repr(tp.__name__.lower()) for tp in skipped_types
                         ))
                     )
                     if multiple_types else
@@ -95,7 +110,7 @@ class _QueryParser:
         self.skipped_lexeme_types.clear()
         return lexeme
 
-    def accept(self, handlers):
+    def accept(self, handlers, completion_class):
         """Peek at the next iterable in the stream and call an optional function
         on the stream if it matches.
 
@@ -105,43 +120,52 @@ class _QueryParser:
             A mapping from Lexeme types to a handler function to call if the
             next lexeme is of the given type. If the next lexeme is not
             handled, it will not be consumed from the stream.
+        completion_class : CompletionClass
+            The completion class to set if there are lexemes in the stream.
         """
         stream = self.stream
         next_ = stream.peek()
         if not next_:
             return
 
+        self.completion_class = completion_class
         try:
             f = handlers[type(next_[0])]
         except KeyError:
             self.skipped_lexeme_types |= handlers.keys()
         else:
             self.skipped_lexeme_types.clear()
-            next(stream)
+            self.last_lexeme = next(stream)
             f()
 
-    def parse_names(self):
+    def parse_names(self, completion_class):
         """Parse a comma delimited list of names.
+
+        Parameters
+        ----------
+        completion_class : CompletionClass
+            The completion class to set for the current name.
 
         Returns
         -------
         names : list[str] or None
             The comma delimited list of names or None if '.' is in the list.
         """
+        self.completion_class = completion_class
         names = [self.expect(Name).string]
 
         def parse_more_names():
             """Append the new names and check for more comma delimited names
             """
             names.append(self.expect(Name).string)
-            self.accept({Comma: parse_more_names})
+            self.accept({Comma: parse_more_names}, CompletionClass.title)
 
         # parse any extra names
-        self.accept({Comma: parse_more_names})
+        self.accept({Comma: parse_more_names}, CompletionClass.title)
         return names
 
     def parse(self):
-        titles = self.parse_names()
+        titles = self.parse_names(CompletionClass.title)
         on = None
         by = None
         shuffle = False
@@ -154,21 +178,22 @@ class _QueryParser:
             """
             nonlocal on
 
-            on = self.parse_names()
+            on = self.parse_names(CompletionClass.album)
             if by is None:
-                self.accept({By: parse_by})
+                self.accept({By: parse_by}, CompletionClass.keyword)
 
         def parse_by():
             """Parse a ``by`` clause. If we haven't already added an ``on``,
             check for a ``on`` clause.
             """
             nonlocal by
-            by = self.parse_names()
+
+            by = self.parse_names(CompletionClass.artist)
             if on is None:
-                self.accept({On: parse_on})
+                self.accept({On: parse_on}, CompletionClass.keyword)
 
         # parse the ``on`` and ``by`` in any order
-        self.accept({On: parse_on, By: parse_by})
+        self.accept({On: parse_on, By: parse_by}, CompletionClass.keyword)
 
         def parse_shuffle():
             """Parse the ``shuffle`` modifier.
@@ -176,7 +201,7 @@ class _QueryParser:
             nonlocal shuffle
             shuffle = True
 
-        self.accept({Shuffle: parse_shuffle})
+        self.accept({Shuffle: parse_shuffle}, CompletionClass.keyword)
 
         def parse_and():
             """Parse an ``and`` clause.
@@ -185,6 +210,7 @@ class _QueryParser:
             p = _QueryParser(self.stream)
             and_ = p.parse()
             self.skipped_lexeme_types = p.skipped_lexeme_types
+            self.completion_class = p.completion_class
 
         def parse_or():
             """Parse an ``or`` clause.
@@ -193,9 +219,10 @@ class _QueryParser:
             p = _QueryParser(self.stream)
             or_ = p.parse()
             self.skipped_lexeme_types = p.skipped_lexeme_types
+            self.completion_class = p.completion_class
 
         # optionally check for an ``and`` or an ``or``
-        self.accept({And: parse_and, Or: parse_or})
+        self.accept({And: parse_and, Or: parse_or}, CompletionClass.keyword)
 
         return Query(titles, on, by, shuffle, and_, or_)
 
@@ -308,3 +335,32 @@ def parse(source):
         )
 
     return query
+
+
+def completion_class(source):
+    """Get the completion class for the given partial query.
+
+    Parameters
+    ----------
+    source : str
+         The source for the partial query.
+
+    Returns
+    -------
+    cls : CompletionClass
+        The completion class for the source.
+    lexeme : Lexeme or None
+        The last lexeme that was parsed.
+    """
+    parser = _QueryParser(PeekableIterator(lex(source)))
+    try:
+        parser.parse()
+    except BadParse:
+        pass
+
+    try:
+        lexeme = next(parser.stream)
+    except StopIteration:
+        lexeme = parser.last_lexeme
+
+    return parser.completion_class, lexeme
