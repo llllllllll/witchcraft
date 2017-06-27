@@ -80,6 +80,7 @@ track_genres = sa.Table(
     metadata,
     sa.Column('track_id', sa.ForeignKey(tracks.c.id)),
     sa.Column('genre_id', sa.ForeignKey(genres.c.id)),
+    sa.UniqueConstraint('track_id', 'genre_id'),
 )
 
 track_artists = sa.Table(
@@ -87,6 +88,7 @@ track_artists = sa.Table(
     metadata,
     sa.Column('track_id', sa.ForeignKey(tracks.c.id)),
     sa.Column('artist_id', sa.ForeignKey(artists.c.id)),
+    sa.UniqueConstraint('track_id', 'artist_id'),
 )
 
 track_labels = sa.Table(
@@ -94,6 +96,7 @@ track_labels = sa.Table(
     metadata,
     sa.Column('track_id', sa.ForeignKey(tracks.c.id)),
     sa.Column('label_id', sa.ForeignKey(labels.c.id)),
+    sa.UniqueConstraint('track_id', 'label_id'),
 )
 
 # International Standard Recording Code
@@ -109,6 +112,7 @@ track_bpms = sa.Table(
     metadata,
     sa.Column('track_id', sa.ForeignKey(tracks.c.id)),
     sa.Column('bpm', sa.SmallInteger),
+    sa.UniqueConstraint('track_id', 'bpm'),
 )
 
 track_dates = sa.Table(
@@ -116,6 +120,7 @@ track_dates = sa.Table(
     metadata,
     sa.Column('track_id', sa.ForeignKey(tracks.c.id)),
     sa.Column('date', sa.DateTime),
+    sa.UniqueConstraint('track_id', 'date'),
 )
 
 track_filetypes = sa.Table(
