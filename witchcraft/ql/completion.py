@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 
-from .lexer import Keyword
+from .lexer import Keyword, Name
 from .parser import CompletionClass, completion_class
 from ..schema import (
     albums,
@@ -31,7 +31,7 @@ def complete_keyword(engine, lexeme):
 
 def _complete_sql(column, engine, lexeme):
     sel = sa.select([column])
-    if lexeme is not None:
+    if isinstance(lexeme, Name):
         sel = sel.where(column.like('%s%%' % lexeme.string))
 
     return [c for c, in engine.execute(sel).fetchall()]
