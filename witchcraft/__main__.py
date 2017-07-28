@@ -26,8 +26,9 @@ There is NO WARRANTY, to the extent permitted by law."""
     help='The name of the metatadata database relative to the music home',
 )
 @click.option(
-    '--verbose/--no-verbose',
-    help='Print additional information while running',
+    '--verbose/--quiet',
+    default=True,
+    help='Print additional information while running?',
 )
 @click.pass_context
 def main(ctx, music_home, db_name, verbose):
