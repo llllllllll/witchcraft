@@ -143,14 +143,7 @@ def completions(ctx, query):
                 if opt.startswith(last_part)
             ]
         else:
-            directory, base = os.path.split(os.path.expanduser(last_part))
-            if not directory:
-                directory = '.'
-            completions = [
-                os.path.join(directory, p)
-                for p in os.listdir(directory)
-                if p.startswith(base)
-            ]
+            completions = []
 
     for completion in sorted(completions):
         print(completion)
