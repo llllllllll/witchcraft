@@ -103,8 +103,11 @@ def select(ctx, query):
         print(path)
 
 
-@main.command()
-@click.argument('query', nargs=-1)
+@main.command(context_settings={
+    'ignore_unknown_options': True,
+    'allow_interspersed_args': False,
+})
+@click.argument('query', nargs=-1, type=click.UNPROCESSED)
 @click.pass_context
 def completions(ctx, query):
     """Generate completion suggestions for a potentially unfinished query.
@@ -121,11 +124,33 @@ def completions(ctx, query):
         except ValueError as e:
             ctx.fail(str(e))
     elif len(query) == 1:
-        completions = [
-            k for k in main.commands.keys() if k.startswith(query[0])
-        ]
+        last_part = query[-1]
+        if last_part.startswith('-'):
+            completions = [
+                opt for param in main.params for opt in param.opts
+                if opt.startswith(last_part)
+            ]
+        else:
+            completions = [
+                k for k in main.commands.keys() if k.startswith(last_part)
+            ]
     else:
-        completions = []
+        last_part = query[-1]
+        if last_part.startswith('-'):
+            command = main.commands[query[0]]
+            completions = [
+                opt for param in command.params for opt in param.opts
+                if opt.startswith(last_part)
+            ]
+        else:
+            directory, base = os.path.split(os.path.expanduser(last_part))
+            if not directory:
+                directory = '.'
+            completions = [
+                os.path.join(directory, p)
+                for p in os.listdir(directory)
+                if p.startswith(base)
+            ]
 
     for completion in sorted(completions):
         print(completion)
