@@ -160,7 +160,7 @@ def completions(ctx, query):
     '-s',
     '--source',
     required=True,
-    type=click.Choice(['bandcamp', 'beatport']),
+    type=click.Choice(['bandcamp', 'amazon']),
     help='Where did you buy the album from?',
 )
 @click.option(

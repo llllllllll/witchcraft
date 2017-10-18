@@ -118,3 +118,39 @@ def _unpack_bandcamp(music_home, conn, album, artist, paths, verbose):
                 verbose=verbose,
                 ignore_failures=False,
             )
+
+
+@unpack.register('amazon', infer_album=True, infer_artist=True)
+def _unpack_amazon(music_home, conn, album, artist, paths, verbose):
+    from zipfile import ZipFile
+
+    if not paths:
+        if verbose:
+            click.echo('no albums to unpack')
+        return
+
+    try:
+        path, = paths
+    except ValueError:
+        raise ValueError('bandcamp source expects exactly one file')
+
+    if album is None or artist is None:
+        filename = os.path.basename(os.path.splitext(path)[0])
+        match = re.match(r'(.*) - (.*)', filename)
+        if match is None:
+            raise ValueError(
+                'failed to infer artist or album name from file path %r' %
+                path,
+            )
+        album = album if album is not None else match.group(1)
+        artist = artist if artist is not None else match.group(2)
+
+    with ZipFile(path) as zf, TemporaryDirectory() as tmpdir:
+        for archivename in zf.namelist():
+            ingest_file(
+                music_home=music_home,
+                conn=conn,
+                path=zf.extract(archivename, path=tmpdir),
+                verbose=verbose,
+                ignore_failures=False,
+            )
