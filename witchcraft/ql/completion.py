@@ -67,4 +67,10 @@ def completions(engine, source):
         The potential completions.
     """
     cls, lexeme = completion_class(source)
-    return _completers[cls](engine, lexeme)
+    completion = _completers[cls](engine, lexeme)
+    last_word = source.rsplit(' ', 1)[-1]
+    if ',' in last_word:
+        last_word_prefix = last_word.split(',')[:-1]
+        completion = [','.join(last_word_prefix + [c]) for c in completion]
+
+    return completion

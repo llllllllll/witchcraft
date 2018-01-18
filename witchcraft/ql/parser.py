@@ -158,10 +158,10 @@ class _QueryParser:
             """Append the new names and check for more comma delimited names
             """
             names.append(self.expect(Name).string)
-            self.accept({Comma: parse_more_names}, CompletionClass.title)
+            self.accept({Comma: parse_more_names}, completion_class)
 
         # parse any extra names
-        self.accept({Comma: parse_more_names}, CompletionClass.title)
+        self.accept({Comma: parse_more_names}, completion_class)
         return names
 
     def parse(self):
