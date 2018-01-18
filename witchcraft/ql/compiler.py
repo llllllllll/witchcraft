@@ -32,7 +32,7 @@ def fuzzy(cs):
 
 
 def pattern_order(column, patterns):
-    """Create a clause suitable for use in an ``order by`` clause which will
+    """Create clauses suitable for use in an ``order by`` clause which will
     sort results in the order they are matched by the patterns.
 
     Parameters
@@ -44,13 +44,16 @@ def pattern_order(column, patterns):
 
     Returns
     -------
-    sa.sql.ColumnClause
-        The clause used in an ``order by`` to enforce the given order.
+    iterable[sa.sql.ColumnClause]
+        The clauses used in an ``order by`` to enforce the given order.
     """
-    return sa.case([
-        (column.like(fuzzy(pattern)), n)
-        for n, pattern in enumerate(patterns)
-    ]).asc()
+    return (
+        sa.case([
+            (column.like(fuzzy(pattern)), n)
+            for n, pattern in enumerate(patterns)
+        ]).asc(),
+        column,
+    )
 
 
 def compile_query(query):
@@ -93,8 +96,9 @@ def compile_query(query):
             )),
         )
 
-        # order the tracks by the album pattern that matched them
-        order_by.append(pattern_order(albums.c.title, query.on))
+        # order the tracks by the album pattern that matched them, if the
+        # pattern matches multiple albums, sort the albums inside the match
+        order_by.extend(pattern_order(albums.c.title, query.on))
         order_by.append(album_contents.c.track_number)
 
     if query.by is not None and '.' not in query.by:
@@ -116,7 +120,7 @@ def compile_query(query):
         )
 
         # order the tracks by the artist pattern that matched them
-        order_by.append(pattern_order(artists.c.name, query.by))
+        order_by.extend(pattern_order(artists.c.name, query.by))
 
     # The title names get converted into filters against the title of the
     # track. The special title '.' means match all tracks.
@@ -129,7 +133,7 @@ def compile_query(query):
         )),
     )
 
-    order_by.append(pattern_order(tracks.c.title, query.titles))
+    order_by.extend(pattern_order(tracks.c.title, query.titles))
 
     select = sa.select((
         tracks.c.path,
