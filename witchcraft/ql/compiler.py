@@ -176,6 +176,5 @@ def compile(source):
         selected by the query.
     extra_args : list[str]
         The extra arguments to pass to ``mpv``.
-
     """
     return compile_query(parse(source))

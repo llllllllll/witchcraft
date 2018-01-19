@@ -81,7 +81,11 @@ def play(ctx, query):
     from witchcraft.play import play
 
     try:
-        play(_connect_db(ctx), ' '.join(query))
+        play(
+            ctx.obj['music_home'],
+            _connect_db(ctx),
+            ' '.join(query),
+        )
     except ValueError as e:
         ctx.fail(str(e))
 
@@ -96,7 +100,11 @@ def select(ctx, query):
     from witchcraft.play import select
 
     try:
-        paths = select(_connect_db(ctx), ' '.join(query))
+        paths = select(
+            ctx.obj['music_home'],
+            _connect_db(ctx),
+            ' '.join(query),
+        )
     except ValueError as e:
         ctx.fail(str(e))
 
