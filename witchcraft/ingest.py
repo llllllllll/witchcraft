@@ -127,7 +127,7 @@ def _inner_ingest_file(music_home,
     else:
         file_name = title
 
-    full_path = '%s%s' % (
+    new_path = '%s%s' % (
         os.path.join(
             ensure_album_dir(music_home, album, artists[0]),
             file_name,
@@ -136,11 +136,11 @@ def _inner_ingest_file(music_home,
     )
     # store songs with a relative path; this makes a library relocatable
     # more easily
-    new_path = os.relpath(full_path, music_home)
+    track_db_path = os.path.relpath(new_path, music_home)
 
     track_id, added_new_track = schema.ensure_track(
         conn=conn,
-        path=new_path,
+        path=track_db_path,
         album=album,
         artists=artists,
         bpm=_exactly_one_tag(tags, 'BPM', optional=True, normalize=int),
