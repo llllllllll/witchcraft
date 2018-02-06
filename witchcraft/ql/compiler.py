@@ -64,13 +64,11 @@ def compile_query(query):
     query : Query
         The query to compile.
 
-    Returns
+    Yields
     -------
-    select : sa.sql.Select
+    selects : sa.sql.Select
         The select to execute which will return the paths to the tracks
-        selected by the query.
-    extra_args : list[str]
-        The extra arguments to pass to ``mpv``.
+        selected by the query. These should be concatenated in order.
     """
     from_obj = tracks
     where = True
@@ -135,30 +133,32 @@ def compile_query(query):
 
     order_by.extend(pattern_order(tracks.c.title, query.titles))
 
+    if query.shuffle:
+        # if we are shuffling this group, throw away the old order by and
+        # just randomly shuffle it
+        order_by = [sa.func.random()]
+
     select = sa.select((
         tracks.c.path,
     )).select_from(
         from_obj,
     ).where(
         where,
-    ).order_by(*order_by)
-
-    # shuffle is implemented in mpv so forward this argument along.
-    extra_args = ['--shuffle'] if query.shuffle else []
+    )
 
     # ``and_`` and ``or_`` clauses add their extra_args to the ``extra_args``.
     # This may not totally be correct with unioning queries but we can deal
     # with that later.
     if query.and_:
-        and_, new_extras = compile_query(query.and_)
-        extra_args.extend(new_extras)
+        and_ = compile_query(query.and_)
         select = select.alias().select().intersect(and_.alias().select())
-    if query.or_:
-        or_, new_extras = compile_query(query.or_)
-        extra_args.extend(new_extras)
-        select = select.alias().select().union(or_.alias().select())
 
-    return select, extra_args
+    # apply the order by after the intersect, if any
+    yield select.order_by(*order_by)
+
+    if query.or_:
+        # emit the queries for the union(s)
+        yield from compile_query(query.or_)
 
 
 def compile(source):

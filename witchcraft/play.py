@@ -19,17 +19,12 @@ def _select_with_args(music_home, conn, query):
     ------
     paths : iterable[str]
         The paths to the tracks that match the query.
-    extra_args : list[str]
-        The extra arguments to pass to ``mpv``.
     """
-    select, extra_args = ql.compile(query)
-    return (
-        [
-            os.path.join(music_home, p[0])
-            for p in conn.execute(select).fetchall()
-        ],
-        extra_args,
-    )
+    return [
+        os.path.join(music_home, p[0])
+        for select in ql.compile(query)
+        for p in conn.execute(select).fetchall()
+    ]
 
 
 def select(music_home, conn, query):
@@ -49,7 +44,7 @@ def select(music_home, conn, query):
     paths : iterable[str]
         The paths to the tracks that match the query.
     """
-    return _select_with_args(music_home, conn, query)[0]
+    return _select_with_args(music_home, conn, query)
 
 
 def play(music_home, conn, query):
@@ -68,10 +63,10 @@ def play(music_home, conn, query):
     -----
     This function never returns.
     """
-    paths, extra_args = _select_with_args(music_home, conn, query)
+    paths = list(_select_with_args(music_home, conn, query))
 
     if not paths:
         # nothing to play, mpv doesn't want an empty path list
         return
 
-    os.execvp('mpv', ['mpv', '--no-video'] + extra_args + paths)
+    os.execvp('mpv', ['mpv', '--no-video'] + paths)
