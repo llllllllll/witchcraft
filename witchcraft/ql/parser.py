@@ -3,13 +3,13 @@ from itertools import chain
 
 from .iterator import PeekableIterator
 from .lexer import (
-    And,
     By,
     Comma,
+    Except,
     Name,
     On,
-    Or,
     Shuffle,
+    Then,
     lex,
 )
 
@@ -169,8 +169,8 @@ class _QueryParser:
         on = None
         by = None
         shuffle = False
-        and_ = None
-        or_ = None
+        except_ = None
+        then = None
 
         def parse_on():
             """Parse an ``on`` clause. If we haven't already added a ``by``,
@@ -203,28 +203,30 @@ class _QueryParser:
 
         self.accept({Shuffle: parse_shuffle}, CompletionClass.keyword)
 
-        def parse_and():
-            """Parse an ``and`` clause.
+        def parse_except():
+            """Parse an ``except`` clause.
             """
-            nonlocal and_
+            nonlocal except_
             p = _QueryParser(self.stream)
-            and_ = p.parse()
+            except_ = p.parse()
             self.skipped_lexeme_types = p.skipped_lexeme_types
             self.completion_class = p.completion_class
 
-        def parse_or():
-            """Parse an ``or`` clause.
+        def parse_then():
+            """Parse a ``then`` clause.
             """
-            nonlocal or_
+            nonlocal then
             p = _QueryParser(self.stream)
-            or_ = p.parse()
+            then = p.parse()
             self.skipped_lexeme_types = p.skipped_lexeme_types
             self.completion_class = p.completion_class
 
-        # optionally check for an ``and`` or an ``or``
-        self.accept({And: parse_and, Or: parse_or}, CompletionClass.keyword)
+        # optionally check for an ``except`` or a ``then``
+        self.accept(
+            {Except: parse_except, Then: parse_then},
+            CompletionClass.keyword)
 
-        return Query(titles, on, by, shuffle, and_, or_)
+        return Query(titles, on, by, shuffle, except_, then)
 
 
 class Query:
@@ -240,18 +242,18 @@ class Query:
         The patterns for the artists to select from
     shuffle : bool
         Should the tracks be shuffled?
-    and_ : Query or None
+    except_ : Query or None
         The query to intersect with.
-    or_ : Query or None
+    then : Query or None
         The query to union with.
     """
-    def __init__(self, titles, on, by, shuffle, and_, or_):
+    def __init__(self, titles, on, by, shuffle, except_, then):
         self.titles = titles
         self.on = on
         self.by = by
         self.shuffle = shuffle
-        self.and_ = and_
-        self.or_ = or_
+        self.except_ = except_
+        self.then = then
 
     @classmethod
     def parse(cls, stream):
@@ -294,8 +296,10 @@ class Query:
         if parser.have_more:
             # we have more tokens in the stream after the full parse, it must
             # not be an ``And`` or ``Or`` or we wouldn't have gotten here
-            parser.expect(And, Or)
-            raise AssertionError('Query should have consumed an and or or')
+            parser.expect(Except, Then)
+            raise AssertionError(
+                'Query should have consumed an except or then',
+            )
         return query
 
 

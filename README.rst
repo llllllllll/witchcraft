@@ -69,8 +69,8 @@ The witchcraft query language uses queries of the form:
                 [on <album>]{, <album>}
                 [by <artist>]{, <artist>}
                 [shuffle]
-                [and <query>
-                [or <query>]
+                [except <query>
+                [then <query>]
 
 - ``$witchcraft play`` will launch ``mpv`` with the tracks that match the query.
 - ``$witchcraft select`` will print the paths to the tracks that match the
@@ -83,8 +83,8 @@ The witchcraft query language uses queries of the form:
 - ``by <artist>`` filters the result set based on the artist name. Tracks will
   be sorted in the order they are matched by the artist patterns.
 - ``shuffle`` marks that the tracks should be played in random order.
-- ``and <query`` intersects the results of this query with another query.
-- ``or <query`` unions the results of this query with another query.
+- ``except <query>`` filters out the results that match ``query``.
+- ``then <query>`` sequences ``query`` to play after the given query.
 
 
 Note: The keywords ``on``, ``by``, ``shuffle``, ``and``, and ``or`` cannot be

@@ -77,8 +77,8 @@ class Keyword(Lexeme):
         return 'unexpected %r' % type(self).__name__.lower()
 
 
-And = Keyword.from_keyword('and')
-Or = Keyword.from_keyword('or')
+Except = Keyword.from_keyword('except')
+Then = Keyword.from_keyword('then')
 On = Keyword.from_keyword('on')
 By = Keyword.from_keyword('by')
 Shuffle = Keyword.from_keyword('shuffle')

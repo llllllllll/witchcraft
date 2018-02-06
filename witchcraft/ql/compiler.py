@@ -138,27 +138,34 @@ def compile_query(query):
         # just randomly shuffle it
         order_by = [sa.func.random()]
 
+    if query.except_:
+        except_, *tail = compile_query(query.except_)
+        where = sa.and_(
+            where,
+            ~tracks.c.path.in_(except_),
+        )
+    else:
+        tail = ()
+
     select = sa.select((
         tracks.c.path,
     )).select_from(
         from_obj,
     ).where(
         where,
+    ).order_by(
+        *order_by
     )
 
-    # ``and_`` and ``or_`` clauses add their extra_args to the ``extra_args``.
-    # This may not totally be correct with unioning queries but we can deal
-    # with that later.
-    if query.and_:
-        and_ = compile_query(query.and_)
-        select = select.alias().select().intersect(and_.alias().select())
 
-    # apply the order by after the intersect, if any
-    yield select.order_by(*order_by)
+    yield select
+    yield from tail
 
-    if query.or_:
+    if query.then:
         # emit the queries for the union(s)
-        yield from compile_query(query.or_)
+        yield from compile_query(query.then)
+
+    yield from tail
 
 
 def compile(source):
