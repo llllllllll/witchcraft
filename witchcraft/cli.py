@@ -1,8 +1,11 @@
 import os
 
 import click
+import sqlalchemy as sa
 
-_server = False
+from witchcraft import __version__
+from witchcraft.schema import check_version, db_version, create_schema
+
 
 _version_msg = """\
 witchcraft {version}
@@ -26,22 +29,19 @@ There is NO WARRANTY, to the extent permitted by law."""
     help='Print additional information while running?',
 )
 @click.pass_context
-def main(ctx, music_home, verbose):
+def main(ctx, music_home, db_name, verbose):
     """Utilities for managing the storage of songs and albums.
     """
     os.makedirs(music_home, exist_ok=True)
     ctx.obj = {
         'music_home': music_home,
+        'db_name': db_name,
         'verbose': verbose,
     }
 
 
 def _connect_db(ctx):
-    import sqlalchemy as sa
-
-    from witchcraft.schema import check_version, db_version, create_schema
-
-    path = os.path.join(ctx.obj['music_home'], '.metadata.db')
+    path = os.path.join(ctx.obj['music_home'], '.witchcraft.db')
     eng = sa.create_engine('sqlite:///' + path)
     if not os.path.exists(path):
         create_schema(eng)
@@ -58,81 +58,10 @@ def _connect_db(ctx):
 
 
 @main.command()
-@click.pass_context
-def serve(ctx):
-    global _server
-    _server = True
-
-    import os
-    import socket
-
-    def _run(args):
-        import contextlib
-        import io
-
-        out = io.StringIO()
-        err = io.StringIO()
-
-        code = 0
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            try:
-                main(args)
-            except SystemExit as e:
-                code = e.code
-
-        return code, out.getvalue().encode(), err.getvalue().encode()
-
-    path = os.path.join(ctx.obj['music_home'], '.cli-server.sock')
-    if os.path.exists(path):
-        os.remove(path)
-
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    server.bind(path)
-    while True:
-        server.listen(1)
-        conn, addr = server.accept()
-        try:
-            size = int.from_bytes(conn.recv(4), 'little')
-            data = conn.recv(size).decode('utf-8')
-            if not data:
-                args = []
-            else:
-                args = data.split(' ')
-
-            code, out, err = _run(args)
-
-            conn.send(code.to_bytes(1, 'little'))
-            conn.send(len(out).to_bytes(4, 'little'))
-            conn.send(out)
-            conn.send(len(err).to_bytes(4, 'little'))
-            conn.send(err)
-        finally:
-            conn.close()
-
-
-@main.command()
 def version():
     """Print version, copyright, and license information.
     """
-    from witchcraft import __version__
-
     click.echo(_version_msg.format(version=__version__))
-
-
-def _select(ctx, query):
-    from witchcraft.play import select
-
-    try:
-        paths = select(
-            ctx.obj['music_home'],
-            _connect_db(ctx),
-            ' '.join(query),
-        )
-    except ValueError as e:
-        ctx.fail(str(e))
-
-    for path in paths:
-        print(path)
 
 
 @main.command()
@@ -142,9 +71,6 @@ def play(ctx, query):
     """Execute a witchcraft query and launch mpv with the results.
     """
     from witchcraft.play import play
-
-    if _server:
-        return _select(ctx, query)
 
     try:
         play(
@@ -163,7 +89,19 @@ def select(ctx, query):
     """Execute a witchcraft query and print the paths to all tracks that match
     the query.
     """
-    _select(ctx, query)
+    from witchcraft.play import select
+
+    try:
+        paths = select(
+            ctx.obj['music_home'],
+            _connect_db(ctx),
+            ' '.join(query),
+        )
+    except ValueError as e:
+        ctx.fail(str(e))
+
+    for path in paths:
+        print(path)
 
 
 @main.command(context_settings={
@@ -340,5 +278,48 @@ def ingest(ctx, path, album, artist, title, track_number, ignore_failures):
             ctx.fail(str(e))
 
 
+def _run(args):
+    import contextlib
+    import io
+
+    out = io.StringIO()
+    err = io.StringIO()
+
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            main(args)
+        except SystemExit:
+            pass
+
+    return out.getvalue().encode(), err.getvalue().encode()
+
+
+def serve():
+    import os
+    import socket
+
+    if os.path.exists("/tmp/socket_test.s"):
+        os.remove("/tmp/socket_test.s")
+
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    server.bind("/tmp/socket_test.s")
+    while True:
+        server.listen(1)
+        conn, addr = server.accept()
+        try:
+            size = int.from_bytes(conn.recv(4), 'big')
+            args = conn.recv(size).decode('utf-8').split(' ')
+
+            out, err = _run(args)
+
+            conn.send(len(out).to_bytes(4, 'big'))
+            conn.send(out)
+            conn.send(len(err).to_bytes(4, 'big'))
+            conn.send(err)
+        finally:
+            conn.close()
+
+
 if __name__ == '__main__':
+    # serve()
     main()

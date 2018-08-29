@@ -20,6 +20,7 @@ prepare() {
 build() {
     cd ${pkgname}-${pkgver}
     python setup.py build
+    ${CC} client/witchcraft_client.c -o witchcraft
 }
 
 package() {
@@ -29,4 +30,8 @@ package() {
 
   # install bash completion
   install -Dm644 etc/witchcraft-completion.bash "$pkgdir/usr/share/bash-completion/completions/$pkgname"
+
+  install -Dm755 witchcraft "$pkgdir/usr/bin/witchcraft"
+
+  install -D775 systemd/witchcraft.service "$pkdir/etc/systemd/system/witchcraft.service"
 }

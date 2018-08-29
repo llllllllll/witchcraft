@@ -1,0 +1,13 @@
+[Unit]
+Description=Witchcraft CLI daemon
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=witchcraft
+ExecStart=python -m witchcraft serve
+
+[Install]
+WantedBy=multi-user.target

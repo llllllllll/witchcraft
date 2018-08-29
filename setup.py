@@ -29,11 +29,6 @@ setup(
         'Topic :: Multimedia :: Sound/Audio :: Players',
     ],
     url='https://github.com/llllllllll/witchcraft',
-    entry_points={
-        'console_scripts': [
-            'witchcraft = witchcraft.__main__:main',
-        ],
-    },
     install_requires=[
         'click',
         'pytaglib',
