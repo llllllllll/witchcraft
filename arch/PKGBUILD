@@ -9,7 +9,7 @@ url="https://www.github.com/llllllllll/witchcraft"
 license=('GPL')
 depends=('python' 'python-click' 'python-sqlalchemy'
          'python-dateutil' 'python-pytaglib' 'mpv')
-makedepends=('python-setuptools')
+makedepends=('gcc' 'python-setuptools')
 source=("https://codeload.github.com/llllllllll/${pkgname}/tar.gz/master")
 md5sums=(SKIP)
 
@@ -20,7 +20,7 @@ prepare() {
 build() {
     cd ${pkgname}-${pkgver}
     python setup.py build
-    ${CC} client/witchcraft_client.c -o witchcraft
+    gcc client/witchcraft_cli.c -o witchcraft-cli
 }
 
 package() {
@@ -31,7 +31,8 @@ package() {
   # install bash completion
   install -Dm644 etc/witchcraft-completion.bash "$pkgdir/usr/share/bash-completion/completions/$pkgname"
 
-  install -Dm755 witchcraft "$pkgdir/usr/bin/witchcraft"
+  install -Dm755 witchcraft-cli "$pkgdir/usr/bin/witchcraft"
 
-  install -D775 systemd/witchcraft.service "$pkdir/etc/systemd/system/witchcraft.service"
+  install -Dm644 systemd/witchcraft.service "$pkgdir/etc/systemd/system/witchcraft.service"
+  install -Dm644 systemd/witchcraft.conf "$pkgdir/etc/witchcraft.conf"
 }

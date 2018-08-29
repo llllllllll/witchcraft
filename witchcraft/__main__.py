@@ -58,8 +58,14 @@ def _connect_db(ctx):
 
 
 @main.command()
+@click.option(
+    '--socket-permissions',
+    type=str,
+    help='The permissions to set on the socket.',
+    default=None,
+)
 @click.pass_context
-def serve(ctx):
+def serve(ctx, socket_permissions):
     global _server
     _server = True
 
@@ -88,6 +94,10 @@ def serve(ctx):
 
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(path)
+
+    if socket_permissions is not None:
+        os.chmod(path, int(socket_permissions, base=8))
+
     while True:
         server.listen(1)
         conn, addr = server.accept()
