@@ -34,5 +34,4 @@ package() {
   install -Dm755 witchcraft-cli "$pkgdir/usr/bin/witchcraft"
 
   install -Dm644 systemd/witchcraft.service "$pkgdir/etc/systemd/system/witchcraft.service"
-  install -Dm644 systemd/witchcraft.conf "$pkgdir/etc/witchcraft.conf"
 }
