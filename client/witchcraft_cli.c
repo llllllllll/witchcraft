@@ -120,43 +120,13 @@ char* read_response(int fd) {
 }
 
 int find_socket_path(char* socket_path, size_t socket_path_length) {
-    static const char* const default_music_home = ".witchcraft";
+    static const char* const default_music_home = "/var/lib/witchcraft";
     static const char* const sockname = ".cli-server.sock";
 
     const char* music_home = getenv("WITCHCRAFT_MUSIC_HOME");
 
     if (!music_home) {
-
-        char* home = getenv("HOME");
-        if (!home) {
-            home = getpwuid(getuid())->pw_dir;
-        }
-
-        size_t home_len = strlen(home);
-        size_t default_music_home_len = strlen(default_music_home);
-        size_t sockname_len = strlen(sockname);
-
-        /* we need space for the home, witchcraft_music_home, the sockname file
-           name, add 2 for '/' characters and 1 for a null terminator */
-        size_t total_size = home_len +
-            default_music_home_len +
-            sockname_len+
-            3;
-        if (total_size > socket_path_length) {
-            log_error("socket_path length cannot exceed %ld bytes, got: %ld",
-                      socket_path_length,
-                      total_size);
-            return -1;
-        }
-
-        size_t ix;
-        memcpy(socket_path, home, ix = home_len);
-        socket_path[ix++] = '/';
-        memcpy(&socket_path[ix], default_music_home, default_music_home_len);
-        ix += default_music_home_len;
-        socket_path[ix++] = '/';
-        memcpy(&socket_path[ix], sockname, sockname_len);
-        return 0;
+        music_home = default_music_home;
     }
 
     size_t music_home_size = strlen(music_home);

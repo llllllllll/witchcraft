@@ -8,7 +8,7 @@ Restart=always
 RestartSec=1
 User=root
 EnvironmentFile=-/etc/witchraft.conf
-ExecStart=WITCHCRAFT_MUSIC_HOME=$WITCHCRAFT_MUSIC_HOME python -m witchcraft serve --socket-permissions=777
+ExecStart=python -m witchcraft serve --socket-permissions=777
 
 [Install]
 WantedBy=multi-user.target

@@ -15,7 +15,7 @@ There is NO WARRANTY, to the extent permitted by law."""
 @click.group()
 @click.option(
     '--music-home',
-    default=os.path.expanduser('~/.witchcraft'),
+    default='/var/lib/witchcraft',
     envvar='WITCHCRAFT_MUSIC_HOME',
     type=click.Path(file_okay=False, writable=True, resolve_path=True),
     help='The top level directory where music is stored',
