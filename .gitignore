@@ -67,3 +67,6 @@ htmlcov
 
 # explicitly add the PKGBUILD
 arch/*
+
+.gdb_history
+client/.gdb_history
