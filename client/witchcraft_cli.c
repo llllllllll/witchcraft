@@ -47,7 +47,9 @@ int send_args(int fd, int argc, char** argv) {
     }
 
     /* we add a ' ' between each argv entry */
-    if (__builtin_add_overflow(total_length, argc - 1, &total_length)) {
+    if (__builtin_add_overflow(total_length,
+                               (argc) ? argc - 1 : 0,
+                               &total_length)) {
         log_error("msg length would overflow a 32 bit unsigned integer");
         free(lengths);
         return -1;
@@ -217,6 +219,9 @@ int handle_play(char* out) {
         return -1;
     }
 
+    /* argv[0] should be the program name */
+    push_back(&size, &capacity, &argv, "mpv");
+
     for (char* end = strchr(out, '\n');
          end;
          out = end + 1, end = strchr(out, '\n')) {
@@ -227,6 +232,7 @@ int handle_play(char* out) {
             return -1;
         }
     }
+
     /* add the --no-video to not display the cover art */
     push_back(&size, &capacity, &argv, "--no-video");
 
