@@ -203,6 +203,12 @@ int handle_play(char* out) {
         }
     }
 
+    if (size == 1) {
+        /* don't launch mpv with 0 files */
+        free(argv);
+        return 0;
+    }
+
     /* add the --no-video to not display the cover art */
     push_back(&size, &capacity, &argv, "--no-video");
 
