@@ -107,7 +107,7 @@ def serve(ctx, socket_permissions):
             if not data:
                 args = []
             else:
-                args = data.split(' ')
+                args = data.split('\0')
 
             code, out, err = _run(args)
 

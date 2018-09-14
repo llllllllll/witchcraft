@@ -46,7 +46,7 @@ int send_args(int fd, int argc, char** argv) {
         }
     }
 
-    /* we add a ' ' between each argv entry */
+    /* we add a '\0' between each argv entry */
     if (__builtin_add_overflow(total_length,
                                (argc) ? argc - 1 : 0,
                                &total_length)) {
@@ -69,8 +69,8 @@ int send_args(int fd, int argc, char** argv) {
         }
 
         if (ix != argc - 1) {
-            if (write(fd, " ", 1) != 1) {
-                log_error("failed to write ' ' after argv[%d]", ix);
+            if (write(fd, "\0", 1) != 1) {
+                log_error("failed to write '\\0' after argv[%d]", ix);
                 free(lengths);
                 return -1;
             }
