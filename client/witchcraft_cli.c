@@ -250,6 +250,18 @@ int main(int argc, char** argv) {
        this differently */
     bool is_play = argc >= 2 && strcmp(argv[1], "play") == 0;
 
+    char cwd[PATH_MAX];
+    if (!getcwd(cwd, PATH_MAX)) {
+        log_error("failed to get cwd: %s", strerror(errno));
+        return -1;
+    }
+
+    char* env[2] = {"CWD", cwd};
+    if (send_args(fd, sizeof(env) / sizeof(char*), env)) {
+        close(fd);
+        return -1;
+    }
+
     if (send_args(fd, argc - 1, &argv[1])) {
         close(fd);
         return -1;
