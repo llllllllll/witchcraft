@@ -57,6 +57,12 @@ def _connect_db(ctx):
     return eng.connect()
 
 
+def _set_env(env):
+    os.environ.update(env)
+    if 'CWD' in env:
+        os.chdir(env['CWD'])
+
+
 @main.command()
 @click.option(
     '--socket-permissions',
@@ -102,6 +108,10 @@ def serve(ctx, socket_permissions):
         server.listen(1)
         conn, addr = server.accept()
         try:
+            size = int.from_bytes(conn.recv(4), 'little')
+            env_items = conn.recv(size).decode('utf-8').split('\0')
+            _set_env(dict(zip(env_items[::2], env_items[1::2])))
+
             size = int.from_bytes(conn.recv(4), 'little')
             data = conn.recv(size).decode('utf-8')
             if not data:
@@ -304,12 +314,28 @@ def unpack_album(ctx, paths, source, album, artist):
     " file's tags. This may not be passed when ingesting a directory.",
 )
 @click.option(
+    '--pattern',
+    default=None,
+    help='A regular expression used to parse song components from the path.'
+    ' To denote a component, use a named group from Python regex syntax. For'
+    r" example: '(?P<track_number>\d+). (?P<title>.*)'\n"
+    ' Groups that are not provided will be read from the file. or taken from'
+    ' the other command line flags.',
+)
+@click.option(
     '--ignore-failures/--no-ignore-failures',
     default=True,
     help='Ignore files that fail to parse.',
 )
 @click.pass_context
-def ingest(ctx, path, album, artist, title, track_number, ignore_failures):
+def ingest(ctx,
+           path,
+           album,
+           artist,
+           title,
+           track_number,
+           pattern,
+           ignore_failures):
     """Ingest a file or director into the witchcraft database.
     """
     paths = path
@@ -343,6 +369,7 @@ def ingest(ctx, path, album, artist, title, track_number, ignore_failures):
                     album=album,
                     title=title,
                     track_number=track_number,
+                    pattern=pattern,
                     verbose=ctx.obj['verbose'],
                     ignore_failures=ignore_failures,
                 )

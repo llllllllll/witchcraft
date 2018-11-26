@@ -1,5 +1,6 @@
 from itertools import chain
 import os
+import re
 import shutil
 
 import click
@@ -91,6 +92,16 @@ def ensure_album_dir(music_home, album, artist):
     return d
 
 
+def _get_group_or_override(match, name, override):
+    if override is not None:
+        return override
+
+    try:
+        return match[name]
+    except IndexError:
+        return override
+
+
 def _inner_ingest_file(music_home,
                        conn,
                        path,
@@ -98,6 +109,7 @@ def _inner_ingest_file(music_home,
                        artists,
                        title,
                        track_number,
+                       pattern,
                        verbose):
     """Helper for ``ignore_failures``.
 
@@ -107,11 +119,30 @@ def _inner_ingest_file(music_home,
     """
     tags = taglib.File(path).tags
 
+    if pattern is not None:
+        match = re.match(pattern, str(path))
+        if match is not None:
+            title = _get_group_or_override(match, 'title', title)
+            album = _get_group_or_override(match, 'album', album)
+
+            artists = _get_group_or_override(match, 'artists', artists)
+            track_number = _get_group_or_override(
+                match,
+                'track_number',
+                track_number,
+            )
+            if track_number is not None:
+                try:
+                    track_number = int(track_number)
+                except ValueError:
+                    raise ValueError('track number must be an integer')
+
     if album is None:
         album = _exactly_one_tag(tags, 'ALBUM', optional=False)
     if artists is None:
         artists = list(chain.from_iterable(map(
-            normalize_artist, tags['ARTIST'],
+            normalize_artist,
+            tags['ARTIST'],
         )))
     if title is None:
         title = _exactly_one_tag(tags, 'TITLE', optional=False)
@@ -174,6 +205,7 @@ def ingest_file(music_home,
                 artists=None,
                 title=None,
                 track_number=None,
+                pattern=None,
                 *,
                 verbose,
                 ignore_failures):
@@ -199,6 +231,15 @@ def ingest_file(music_home,
     track_number : int, optional
         The track number on the given album. If not provided, this will be read
         from the file's tags.
+    pattern : str, optional
+        A regular expression used to parse song components from the path.
+        To denote a component, use a named group from Python regex syntax. For
+        example:
+
+           (?P<track_number>\d+). (?P<title>.*)
+
+        Groups that are not provided will be read from the file. or taken from
+        the other command line flags.
     verbose : bool
         Should extra information be printed
     ignore_failures : bool
@@ -213,6 +254,7 @@ def ingest_file(music_home,
             artists,
             title,
             track_number,
+            pattern,
             verbose,
         )
     except Exception as e:
@@ -227,6 +269,7 @@ def ingest_recursive(music_home,
                      path,
                      album=None,
                      artists=None,
+                     pattern=None,
                      *,
                      verbose,
                      ignore_failures):
@@ -246,6 +289,15 @@ def ingest_recursive(music_home,
     artists : str, optional
         The list of artists to use. If not provided, this will be read from the
         file's tags.
+    pattern : str, optional
+        A regular expression used to parse song components from the path.
+        To denote a component, use a named group from Python regex syntax. For
+        example:
+
+           (?P<track_number>\d+). (?P<title>.*)
+
+        Groups that are not provided will be read from the file. or taken from
+        the other command line flags.
     verbose : bool
         Should extra information be printed?
     ignore_failures : bool
@@ -259,6 +311,7 @@ def ingest_recursive(music_home,
                 direntry.path,
                 album=album,
                 artists=artists,
+                pattern=pattern,
                 verbose=verbose,
                 ignore_failures=ignore_failures,
             )
@@ -273,6 +326,7 @@ def ingest_recursive(music_home,
             direntry.path,
             album=album,
             artists=artists,
+            pattern=pattern,
             verbose=verbose,
             ignore_failures=ignore_failures,
         )
