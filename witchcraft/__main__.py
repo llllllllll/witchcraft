@@ -186,6 +186,44 @@ def select(ctx, query):
     _select(ctx, query)
 
 
+def _complete_query(ctx, query):
+    from witchcraft.ql import completions as get_completions
+
+    try:
+        return get_completions(_connect_db(ctx), ' '.join(query[1:]))
+    except ValueError as e:
+        ctx.fail(str(e))
+
+
+def _complete_single(ctx, query):
+    last_part = query[-1]
+    if last_part.startswith('-'):
+        completions = [
+            opt for param in main.params for opt in param.opts
+            if opt.startswith(last_part)
+        ]
+    else:
+        completions = [
+            k for k in main.commands.keys() if k.startswith(last_part)
+        ]
+
+    return completions
+
+
+def _complete_many(ctx, query):
+    last_part = query[-1]
+    if last_part.startswith('-'):
+        command = main.commands[query[0]]
+        completions = [
+            opt for param in command.params for opt in param.opts
+            if opt.startswith(last_part)
+        ]
+    else:
+        completions = []
+
+    return completions
+
+
 @main.command(context_settings={
     'ignore_unknown_options': True,
     'allow_interspersed_args': False,
@@ -198,35 +236,11 @@ def completions(ctx, query):
     if not query:
         completions = main.commands.keys()
     elif query[0] in ('play', 'select'):
-        from witchcraft.ql import completions as get_completions
-        try:
-            completions = get_completions(
-                _connect_db(ctx),
-                ' '.join(query[1:]),
-            )
-        except ValueError as e:
-            ctx.fail(str(e))
+        completions = _complete_query(ctx, query)
     elif len(query) == 1:
-        last_part = query[-1]
-        if last_part.startswith('-'):
-            completions = [
-                opt for param in main.params for opt in param.opts
-                if opt.startswith(last_part)
-            ]
-        else:
-            completions = [
-                k for k in main.commands.keys() if k.startswith(last_part)
-            ]
+        completions = _complete_single(ctx, query)
     else:
-        last_part = query[-1]
-        if last_part.startswith('-'):
-            command = main.commands[query[0]]
-            completions = [
-                opt for param in command.params for opt in param.opts
-                if opt.startswith(last_part)
-            ]
-        else:
-            completions = []
+        completions = _complete_many(ctx, query)
 
     for completion in sorted(completions):
         print(completion)
